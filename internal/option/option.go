@@ -14,13 +14,13 @@ import (
 )
 
 var (
-	logLevel     int
-	saveFilePath bool
+	logLevel     int  //log级别
+	saveFilePath bool //保存文件路径的开关状态
 )
 
 var (
-	optionPath    = path.Join(helper.AppConfigDir(), "option.json")
-	fileWatchPath = path.Join(helper.AppConfigDir(), "FileWatch.json")
+	optionPath    = path.Join(helper.AppConfigDir(), "option.json")    //程序的配置文件夹下的option.json
+	fileWatchPath = path.Join(helper.AppConfigDir(), "FileWatch.json") //程序的配置文件夹下的FileWatch.json
 )
 
 type OptT struct {
@@ -41,16 +41,17 @@ func Get() OptT {
 
 func Load() {
 	var opt OptT
-	jsonfile.Load(optionPath, &opt)
+	jsonfile.Load(optionPath, &opt) //从optionPath中加载配置选项到opt
+	//将opt中的SaveVarList和UpdateByProj配置选项分别设置到相关变量中
 	variable.SetOptSaveVarList(opt.SaveVarList)
 	variable.SetOptUpdateByProj(opt.UpdateByProj)
 
 	var watchList []string
-	jsonfile.Load(fileWatchPath, &watchList)
+	jsonfile.Load(fileWatchPath, &watchList) //加载指定路径fileWatchPath的文件监视列表到字符串切片watchList中
 	for _, w := range watchList {
-		elffile.ChFileWatch <- w
+		elffile.ChFileWatch <- w //将watchList中的每一个文件名发送到elffile.ChFileWatch通道中
 	}
-
+	//保存当前的文件监视列表和配置选项到对应的文件中
 	jsonfile.Save(fileWatchPath, elffile.GetWatchList())
 	jsonfile.Save(optionPath, opt)
 }

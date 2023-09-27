@@ -1,6 +1,9 @@
 package variable
 
 import (
+	"encoding/binary"
+	"math"
+
 	"github.com/golang/glog"
 	"github.com/scutrobotlab/asuwave/pkg/slip"
 )
@@ -109,4 +112,17 @@ func Filt(vars []CmdT) (chart []ChartT, add []CmdT, del []CmdT) {
 		}
 	}
 	return
+}
+
+func ConvertTToCmdT(t T) CmdT {
+	var dataBytes [8]byte
+	binary.LittleEndian.PutUint64(dataBytes[:], math.Float64bits(t.Data))
+
+	return CmdT{
+		Board:  t.Board,
+		Length: len(dataBytes),
+		Addr:   t.Addr,
+		Tick:   t.Tick,
+		Data:   dataBytes,
+	}
 }

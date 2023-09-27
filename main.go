@@ -25,18 +25,18 @@ func main() {
 
 	if vFlag {
 		fmt.Println(helper.GetVersion())
-		os.Exit(0)
+		//os.Exit(0)
 	}
 
 	if uFlag {
 		helper.CheckUpdate(false)
-		os.Exit(0)
+		//os.Exit(0)
 	}
 
 	option.Load()
 
 	if val, ok := os.LookupEnv("PORT"); ok {
-		helper.Port, _ = strconv.Atoi(val)
+		helper.Port, _ = strconv.Atoi(val) //字符串转化为int
 	}
 
 	fsys := getFS()

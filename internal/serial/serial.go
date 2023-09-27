@@ -96,7 +96,7 @@ func Close() error {
 	return nil
 }
 
-//Transmit data
+// Transmit data
 func Transmit(data []byte) error {
 	glog.V(3).Infoln("serial port write: ", data)
 	_, err := SerialCur.Port.Write(data)
@@ -106,7 +106,7 @@ func Transmit(data []byte) error {
 	return nil
 }
 
-//Receive data
+// Receive data
 func Receive(buff []byte) ([]byte, error) {
 	n, err := SerialCur.Port.Read(buff)
 	glog.V(5).Infoln("serial port read: ", n)
@@ -182,10 +182,10 @@ func GrReceive() {
 				glog.V(4).Infoln("GrReceive b: ", b)
 				chRx <- b
 				glog.V(4).Infoln("GrReceive: send chRx...")
-				time.Sleep(5 * time.Millisecond)
+				time.Sleep(3 * time.Millisecond)
 			}
 		}
-		time.Sleep(5 * time.Millisecond)
+		time.Sleep(2 * time.Millisecond)
 	}
 }
 
@@ -260,7 +260,7 @@ func GrRxPrase() {
 				}
 			}()
 
-		case <-time.After(200 * time.Millisecond): // 200ms不见
+		case <-time.After(200 * time.Millisecond): // 200ms都没有数据接收
 			if SerialCur.Port == nil || SerialCur.Name == "" {
 				break
 			}

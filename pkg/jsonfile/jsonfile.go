@@ -8,7 +8,7 @@ import (
 )
 
 func Save(filename string, v interface{}) {
-	jsonTxt, err := json.Marshal(v)
+	jsonTxt, err := json.Marshal(v) //将v转化成JSON格式文本
 	if err != nil {
 		glog.Errorln(err.Error())
 	}
@@ -29,7 +29,7 @@ func Load(filename string, v interface{}) {
 	if err != nil {
 		glog.Errorln(err.Error())
 	}
-	err = json.Unmarshal(data, v)
+	err = json.Unmarshal(data, v) //将读取到的数据解析到对象v中
 	if err != nil {
 		glog.Errorln(err.Error())
 	}
