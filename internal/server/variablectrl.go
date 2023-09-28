@@ -42,7 +42,7 @@ func makeVariableCtrl(m variable.Mod) func(w http.ResponseWriter, r *http.Reques
 				return
 			}
 			// 验证地址的有效性。
-			if newVariable.Addr < 0x20000000 || newVariable.Addr >= 0x80000000 {
+			if newVariable.Addr >= 0x80000000 {
 				w.WriteHeader(http.StatusBadRequest)
 				io.WriteString(w, errorJson("Address out of range"))
 				return
@@ -55,16 +55,15 @@ func makeVariableCtrl(m variable.Mod) func(w http.ResponseWriter, r *http.Reques
 			}
 			// 设置新变量。
 			// 发送读命令。
-			err = serial.SendCmd(variable.Subscribe, variable.ConvertTToCmdT(newVariable))
 			variable.Set(m, newVariable.Addr, newVariable)
 			w.WriteHeader(http.StatusNoContent) // 返回204 No Content响应。
 			io.WriteString(w, "")
 
 		// 当请求方法为PUT时，修改变量的值。
 		case http.MethodPut:
-			// 检查是否允许修改变量。
 			if m == variable.RD {
-				w.WriteHeader(http.StatusMethodNotAllowed) // 如果变量是只读的，则返回405 Method Not Allowed错误。
+				// 前端向HTTP路由"/variable_read"发送了非法指令
+				w.WriteHeader(http.StatusMethodNotAllowed)
 				io.WriteString(w, errorJson(http.StatusText(http.StatusMethodNotAllowed)))
 				return
 			}

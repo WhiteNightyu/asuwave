@@ -14,16 +14,17 @@ const (
 	WR
 )
 
+// 用于存储变量修改信息的结构体
 type T struct {
-	Board      uint8
-	Name       string
-	Type       string
-	Addr       uint32
-	Data       float64
-	Tick       uint32
-	Inputcolor string
-	SignalGain float64
-	SignalBias float64
+	Board      uint8   //板子ID
+	Name       string  //变量名
+	Type       string  //变量类型
+	Addr       uint32  //变量地址
+	Data       float64 //要写入的数据
+	Tick       uint32  //
+	Inputcolor string  //颜色
+	SignalGain float64 //增益
+	SignalBias float64 //偏置
 }
 
 type RWMap struct { // 一个读写锁保护的线程安全的map
@@ -32,9 +33,9 @@ type RWMap struct { // 一个读写锁保护的线程安全的map
 }
 
 var to []RWMap = []RWMap{{
-	m: make(map[uint32]T, 0),
+	m: make(map[uint32]T),
 }, {
-	m: make(map[uint32]T, 0),
+	m: make(map[uint32]T),
 }}
 
 func SetAll(o Mod, v map[uint32]T) {
@@ -44,7 +45,7 @@ func SetAll(o Mod, v map[uint32]T) {
 	jsonfile.Save(jsonPath[o], to[o].m)
 }
 
-// 以json格式获取所有Mod变量
+// GetAll 以json格式获取所有Mod变量
 func GetAll(o Mod) ([]byte, error) {
 	to[o].RLock() // 锁保护
 	defer to[o].RUnlock()

@@ -12,13 +12,13 @@ import (
 	"github.com/scutrobotlab/asuwave/internal/variable"
 )
 
-type T struct {
+type Info struct {
 	Name string
 	Mode serial.Mode
 	Port serial.Port
 }
 
-var SerialCur = T{
+var SerialCur = Info{
 	Name: "",
 	Mode: serial.Mode{
 		BaudRate: 115200,
@@ -31,10 +31,10 @@ var SerialCur = T{
 
 var Chch = make(chan string) // 新图表Json
 
-var chOp = make(chan bool)       // 敞开心扉
-var chEd = make(chan bool)       // 沉默不语
-var chRx = make(chan []byte, 10) // 来信收讫
-var chTx = make(chan []byte, 10) // 去信已至
+var chOp = make(chan bool)        // 敞开心扉
+var chEd = make(chan bool)        // 沉默不语
+var chRx = make(chan []byte, 100) // 来信收讫
+var chTx = make(chan []byte, 10)  // 去信已至
 
 const testPortName = "Test port"
 
@@ -140,7 +140,7 @@ func SendCmd(act variable.ActMode, v variable.CmdT) error {
 
 	if act == variable.Subscribe {
 		if t, ok := adding[v]; ok {
-			if time.Since(t) < time.Second {
+			if time.Since(t) < 5*time.Second {
 				glog.V(2).Infoln("Has sent subscribe cmd recently", v)
 				return nil
 			}
@@ -163,7 +163,9 @@ func SendCmd(act variable.ActMode, v variable.CmdT) error {
 }
 
 func GrReceive() {
-	buff := make([]byte, 200)
+	buff := make([]byte, 400)
+	var b []byte
+	var err error
 	for {
 		<-chOp
 		glog.V(4).Infoln("chOp...")
@@ -175,26 +177,27 @@ func GrReceive() {
 				break Loop
 			default:
 				glog.V(4).Infoln("GrReceive: default...")
-				b, err := Receive(buff)
+				b, err = Receive(buff)
 				if err != nil {
 					glog.Errorln("GrReceive error:", err)
 				}
 				glog.V(4).Infoln("GrReceive b: ", b)
 				chRx <- b
 				glog.V(4).Infoln("GrReceive: send chRx...")
-				time.Sleep(3 * time.Millisecond)
+				time.Sleep(1000 * time.Microsecond)
 			}
 		}
-		time.Sleep(2 * time.Millisecond)
 	}
 }
 
 func GrTransmit() {
+	var err error
+	var data []byte
 	for {
 		glog.V(4).Infoln("GrTransmit: ")
-		b := <-chTx
+		data = <-chTx
 		glog.V(4).Infoln("GrTransmit: got chTx...")
-		err := Transmit(b)
+		err = Transmit(data)
 		if err != nil {
 			glog.Errorln("GrTransmit error: ", err)
 		}
@@ -204,6 +207,12 @@ func GrTransmit() {
 
 func GrRxPrase() {
 	var rxBuff []byte
+	var idleTimer = time.NewTimer(200 * time.Millisecond)
+	var chart []variable.ChartT
+	var add []variable.CmdT
+	var del []variable.CmdT
+	var vars []variable.CmdT
+
 	for {
 		select {
 		case rx := <-chRx: // 收到你的来信
@@ -217,19 +226,18 @@ func GrRxPrase() {
 
 			// 解开长情的信笺
 			// 残余的信亦不能忘却
-			var vars []variable.CmdT
 			vars, rxBuff = variable.Unpack(rxBuff)
 
 			// 所有的酸甜苦辣都值得铭记
 			glog.V(4).Infoln("left buff: ", rxBuff)
 			glog.V(4).Infof("got vars: %v\n", vars)
 
-			if len(vars) > 10 {
+			if len(vars) > 20 {
 				glog.Fatalln("Too many vars")
 			}
 
 			// 拼凑出变量的清单
-			chart, add, del := variable.Filt(vars)
+			chart, add, del = variable.Filt(vars)
 			if len(chart) != 0 {
 				b, _ := json.Marshal(chart)
 				Chch <- string(b)
@@ -240,27 +248,15 @@ func GrRxPrase() {
 				glog.Infof("add: %v, del: %v\n", add, del)
 			}
 
-			// 挂念的变量，还望顺问近祺
-			go func() {
-				for _, v := range add {
-					err := SendCmd(variable.Subscribe, v)
-					if err != nil {
-						glog.Errorln("SendCmd error:", err)
-					}
+			for _, v := range del {
+				err := SendCmd(variable.Unsubscribe, v)
+				if err != nil {
+					glog.Errorln("SendCmd error:", err)
 				}
-			}()
+			}
 
-			// 无缘的变量，就请随风逝去
-			go func() {
-				for _, v := range del {
-					err := SendCmd(variable.Unsubscribe, v)
-					if err != nil {
-						glog.Errorln("SendCmd error:", err)
-					}
-				}
-			}()
-
-		case <-time.After(200 * time.Millisecond): // 200ms都没有数据接收
+		case <-(idleTimer.C):
+			idleTimer.Reset(200 * time.Millisecond)
 			if SerialCur.Port == nil || SerialCur.Name == "" {
 				break
 			}

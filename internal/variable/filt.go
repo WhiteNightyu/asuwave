@@ -1,9 +1,6 @@
 package variable
 
 import (
-	"encoding/binary"
-	"math"
-
 	"github.com/golang/glog"
 	"github.com/scutrobotlab/asuwave/pkg/slip"
 )
@@ -16,7 +13,7 @@ type CmdT struct {
 	Data   [8]byte
 }
 
-// 在如山的信笺里，找寻变量的回音
+// Unpack 在如山的信笺里，找寻变量的回音
 func Unpack(data []byte) ([]CmdT, []byte) {
 
 	// 分开信笺
@@ -48,7 +45,7 @@ func Unpack(data []byte) ([]CmdT, []byte) {
 		}
 		glog.Infoln(pack)
 		// 非变量之回音，或无合法之落款，则弃之
-		for len(pack) != 20 || ActMode(pack[1]) != SubscribeReturn || pack[19] != '\n' {
+		if len(pack) != 20 || ActMode(pack[1]) != SubscribeReturn || pack[19] != '\n' {
 			glog.V(1).Infoln("Not Subscribereturn pack", pack)
 			continue
 		}
@@ -72,7 +69,7 @@ func Unpack(data []byte) ([]CmdT, []byte) {
 	return vars, newbuff    // 变量的回音，仍有余音
 }
 
-// 从茫茫 vars 中，寻找我所挂念的 to[RD] ，记录在列表 chart 中。
+// Filt 从茫茫 vars 中，寻找我所挂念的 to[RD] ，记录在列表 chart 中。
 // 所有的 add 我都难以忘记，所有的 del 我都不愿提起
 func Filt(vars []CmdT) (chart []ChartT, add []CmdT, del []CmdT) {
 	to[RD].RLock()
@@ -112,17 +109,4 @@ func Filt(vars []CmdT) (chart []ChartT, add []CmdT, del []CmdT) {
 		}
 	}
 	return
-}
-
-func ConvertTToCmdT(t T) CmdT {
-	var dataBytes [8]byte
-	binary.LittleEndian.PutUint64(dataBytes[:], math.Float64bits(t.Data))
-
-	return CmdT{
-		Board:  t.Board,
-		Length: len(dataBytes),
-		Addr:   t.Addr,
-		Tick:   t.Tick,
-		Data:   dataBytes,
-	}
 }
